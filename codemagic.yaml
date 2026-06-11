@@ -7,6 +7,9 @@ workflows:
     scripts:
       - name: Build APK
         script: |
+          echo "Current directory:"
+          pwd
+          echo "Files:"
           ls -la
           ./gradlew assembleDebug
     artifacts:
