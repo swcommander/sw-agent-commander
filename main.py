@@ -2,39 +2,45 @@ import os
 import json
 import firebase_admin
 from firebase_admin import credentials, firestore
+import google.generativeai as genai
 
-def initialize_services():
-    print("[1/2] جاري الاتصال بخدمات Google Cloud و Firebase...")
+def run_smartforge_engine():
+    print("=== [1/2] اختبار الاتصال بخدمات Google Cloud & Firebase ===")
     
-    # قراءة المفتاح المشفر من Secrets
-    service_account_env = os.environ.get('FIREBASE_SERVICE_ACCOUNT')
-    
-    if not service_account_env:
-        print("❌ خطأ: لم يتم العثور على المتغير FIREBASE_SERVICE_ACCOUNT في إعدادات البيئة!")
-        return None
+    # جلب مفتاح Firebase المشفر من الأسرار
+    fb_secret = os.environ.get('FIREBASE_SERVICE_ACCOUNT')
+    if not fb_secret:
+        print("❌ خطأ: لم يتم العثور على FIREBASE_SERVICE_ACCOUNT في الأسرار!")
+        return
 
     try:
-        # تحويل نص المفتاح إلى بيانات مفعلة
-        service_account_info = json.loads(service_account_env)
-        
-        # تهيئة تطبيق Firebase Admin
-        cred = credentials.Certificate(service_account_info)
-        firebase_admin.initialize_app(cred)
-        
-        print("✓ تم الاتصال بـ Firebase بنجاح وبصلاحيات المالك الكاملة.")
-        
-        # اختبار الاتصال بقاعدة البيانات Firestore
+        cred = credentials.Certificate(json.loads(fb_secret))
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(cred)
         db = firestore.client()
-        print("✓ محرك البيانات Firestore جاهز للعمل.")
-        return db
-
+        print("✓ تم الاتصال بـ Firebase و Firestore بنجاح وبصلاحيات المالك الكاملة.")
     except Exception as e:
-        print(f"❌ حدث خطأ أثناء الاتصال: {str(e)}")
-        return None
+        print(f"❌ خطأ أثناء الاتصال بـ Firebase: {e}")
+        return
+
+    print("\n=== [2/2] اختبار محرك الذكاء الاصطناعي Gemini AI ===")
+    gemini_key = os.environ.get('GEMINI_API_KEY')
+    if not gemini_key:
+        print("⚠️ تنبيه: لم يتم العثور على GEMINI_API_KEY في الأسرار.")
+        return
+
+    try:
+        genai.configure(api_key=gemini_key)
+        model = genai.GenerativeModel('gemini-1.5-pro')
+        
+        prompt = "قم بتقديم نفسك بكلمتين كذكاء اصطناعي تابع لمشروع SmartForge AI"
+        response = model.generate_content(prompt)
+        
+        print("✓ رد الذكاء الاصطناعي بنجاح:")
+        print(f"-> {response.text.strip()}")
+    except Exception as e:
+        print(f"❌ خطأ أثناء تشغيل Gemini: {e}")
 
 if __name__ == "__main__":
-    print("=== بدء تشغيل المحرك الرئيسي SmartForge AI ===")
-    db = initialize_services()
-    if db:
-        print("=== النظام مكتمل وجاهز للعمل سحابياً بنجاح! ===")
-      
+    run_smartforge_engine()
+    
